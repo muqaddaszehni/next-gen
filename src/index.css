@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-bone text-ink font-sans;
+    /* A faint paper grain: two ultra-subtle radial washes over the bone ground. */
+    background-image:
+      radial-gradient(120% 90% at 12% -10%, rgba(176, 144, 79, 0.05) 0%, transparent 45%),
+      radial-gradient(120% 90% at 100% 0%, rgba(14, 27, 46, 0.04) 0%, transparent 40%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-serif text-navy;
+    font-feature-settings: 'liga' 1, 'dlig' 1;
+  }
+
+  /* Numerals look more refined as old-style/tabular where shown as data. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background: rgba(176, 144, 79, 0.22);
+    color: #0e1b2e;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(176, 144, 79, 0.7);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Letter-spaced small-caps label, the spine of the annual-report look. */
+  .label-caps {
+    @apply font-sans uppercase tracking-label text-[0.68rem] font-medium;
+  }
+
+  /* Hairline divider used throughout. */
+  .hairline {
+    @apply border-hairline;
+  }
+
+  /* A quiet, refined link/underline treatment. */
+  .link-underline {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 1px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    transition: background-size 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .link-underline:hover {
+    background-size: 100% 1px;
+  }
+}
+
+@layer utilities {
+  .animate-delay-1 { animation-delay: 0.08s; }
+  .animate-delay-2 { animation-delay: 0.16s; }
+  .animate-delay-3 { animation-delay: 0.24s; }
+  .animate-delay-4 { animation-delay: 0.32s; }
+  .animate-delay-5 { animation-delay: 0.40s; }
+  .animate-delay-6 { animation-delay: 0.48s; }
+}
+
+/* ---- React Flow overrides to match the restrained palette ---- */
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__edge-path {
+  stroke: #b0904f;
+  stroke-width: 1.25;
+}
+.react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+.react-flow__node {
+  cursor: pointer;
+}
+
+/* Tame autofill / range styling on the investing slider */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 26px;
+  width: 26px;
+  border-radius: 999px;
+  background: #0e1b2e;
+  border: 3px solid #f7f4ee;
+  box-shadow: 0 2px 8px rgba(14, 27, 46, 0.3), 0 0 0 1px #b0904f;
+  cursor: grab;
+  margin-top: -11px;
+  transition: transform 0.2s ease;
+}
+input[type='range']:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.06);
+}
+input[type='range']::-moz-range-thumb {
+  height: 24px;
+  width: 24px;
+  border-radius: 999px;
+  background: #0e1b2e;
+  border: 3px solid #f7f4ee;
+  box-shadow: 0 2px 8px rgba(14, 27, 46, 0.3), 0 0 0 1px #b0904f;
+  cursor: grab;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #d8d2c6;
+}
+input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #d8d2c6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
