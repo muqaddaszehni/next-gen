@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { scenarios, type ScenarioChoice } from '../data/family'
+import type { ScenarioChoice } from '../data/types'
 import { ModuleShell } from '../components/ModuleShell'
 import { Action, Arrow, Eyebrow, GoldRule } from '../components/primitives'
+import { useActiveClient } from '../lib/nav'
 
 const toneMeta: Record<
   ScenarioChoice['tone'],
@@ -28,10 +29,13 @@ const toneMeta: Record<
 }
 
 export function YourRole() {
+  const client = useActiveClient()
   const [step, setStep] = useState(0)
   const [selections, setSelections] = useState<Record<string, string>>({})
 
+  const scenarios = client?.scenarios ?? []
   const sc = scenarios[step]
+  if (!sc) return null
   const chosenId = selections[sc.id]
   const chosen = sc.choices.find((c) => c.id === chosenId) ?? null
   const answeredAll = scenarios.every((s) => selections[s.id])

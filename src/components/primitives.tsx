@@ -25,15 +25,15 @@ export function Hairline({ className = '' }: { className?: string }) {
   return <hr className={`border-0 border-t border-hairline ${className}`} />
 }
 
-// The Tan monogram — a quiet serif "T" inside a hairline lozenge.
-export function Monogram({ className = '' }: { className?: string }) {
+// A family monogram — a quiet serif initial inside a hairline lozenge.
+export function Monogram({ letter = 'N', className = '' }: { letter?: string; className?: string }) {
   return (
     <span
       className={`inline-grid place-items-center rounded-full border border-brass/60 text-brass-deep ${className}`}
       aria-hidden
     >
       <span className="font-serif leading-none" style={{ fontSize: '0.62em', marginTop: '0.04em' }}>
-        T
+        {letter}
       </span>
     </span>
   )

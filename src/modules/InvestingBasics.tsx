@@ -9,23 +9,29 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { projectGrowth, riskProfiles } from '../data/family'
+import { projectGrowth, riskProfiles } from '../data/app'
 import { ModuleShell } from '../components/ModuleShell'
 import { Eyebrow, GoldRule } from '../components/primitives'
+import { useActiveClient } from '../lib/nav'
 
-const STARTING_SUM = 5_000_000
 const REQUIRED_VISITS = 3
 
-const fmtAxis = (v: number) => `${(v / 1_000_000).toFixed(1)}M`
-const fmtMoney = (v: number) =>
-  `HK$${(v / 1_000_000).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}M`
-
 export function InvestingBasics() {
+  const client = useActiveClient()
   const [index, setIndex] = useState(2) // start at "Balanced"
   const [visited, setVisited] = useState<Set<number>>(() => new Set([2]))
+
+  const startingSum = client?.investing.startingSum ?? 5_000_000
+  const currency = client?.branding.currency ?? '$'
+  const familyNote = client?.riskFamilyNotes[index] ?? ''
+
+  const fmtAxis = (v: number) => `${(v / 1_000_000).toFixed(1)}M`
+  const fmtMoney = (v: number) =>
+    `${currency}${(v / 1_000_000).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}M`
+  const startLabel = `${currency}${startingSum.toLocaleString('en-US')}`
 
   const profile = riskProfiles[index]
 
@@ -34,12 +40,10 @@ export function InvestingBasics() {
     setVisited((prev) => (prev.has(v) ? prev : new Set(prev).add(v)))
   }
 
-  const data = useMemo(() => {
-    return projectGrowth(profile, STARTING_SUM).map((d) => ({
-      ...d,
-      range: d.high - d.low,
-    }))
-  }, [profile])
+  const data = useMemo(
+    () => projectGrowth(profile, startingSum).map((d) => ({ ...d, range: d.high - d.low })),
+    [profile, startingSum],
+  )
 
   const finalMid = data[data.length - 1].mid
   const finalLow = data[data.length - 1].low
@@ -105,33 +109,23 @@ export function InvestingBasics() {
 
         {/* ── Selected profile headline ───────────────────────────── */}
         <div className="mt-8 text-center">
-          <Eyebrow>Setting {String(index + 1).padStart(2, '0')} · {profile.mix}</Eyebrow>
+          <Eyebrow>
+            Setting {String(index + 1).padStart(2, '0')} · {profile.mix}
+          </Eyebrow>
           <h3 className="mt-3 font-serif text-4xl text-navy sm:text-5xl">{profile.name}</h3>
         </div>
 
         {/* ── Key figures ─────────────────────────────────────────── */}
         <div className="mt-8 grid grid-cols-1 gap-px overflow-hidden border border-hairline bg-hairline sm:grid-cols-3">
-          <Stat
-            label="Expected return / year"
-            value={`${profile.expectedReturn.toFixed(1)}%`}
-            tone="brass"
-          />
-          <Stat
-            label="In a typical bad year"
-            value={`${profile.typicalDownYear}%`}
-            tone="warn"
-          />
-          <Stat
-            label="HK$5M after 20 years*"
-            value={fmtMoney(finalMid)}
-            tone="navy"
-          />
+          <Stat label="Expected return / year" value={`${profile.expectedReturn.toFixed(1)}%`} tone="brass" />
+          <Stat label="In a typical bad year" value={`${profile.typicalDownYear}%`} tone="warn" />
+          <Stat label="Value after 20 years*" value={fmtMoney(finalMid)} tone="navy" />
         </div>
 
         {/* ── Projection chart ────────────────────────────────────── */}
         <div className="mt-8">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <Eyebrow tone="muted">An illustrative HK$5,000,000, invested for 20 years</Eyebrow>
+            <Eyebrow tone="muted">An illustrative {startLabel}, invested for 20 years</Eyebrow>
             <span className="text-[0.78rem] text-ink/45">
               Likely range: {fmtMoney(finalLow)} – {fmtMoney(finalHigh)}
             </span>
@@ -162,31 +156,10 @@ export function InvestingBasics() {
                   tickLine={false}
                   width={52}
                 />
-                <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#0E1B2E', strokeOpacity: 0.2 }} />
-                {/* invisible base, then the band on top of it */}
-                <Area
-                  dataKey="low"
-                  stackId="band"
-                  stroke="none"
-                  fill="transparent"
-                  isAnimationActive={false}
-                  activeDot={false}
-                />
-                <Area
-                  dataKey="range"
-                  stackId="band"
-                  stroke="none"
-                  fill="url(#band)"
-                  isAnimationActive={false}
-                  activeDot={false}
-                />
-                <Line
-                  dataKey="mid"
-                  stroke="#0E1B2E"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
+                <Tooltip content={<ChartTooltip currency={currency} />} cursor={{ stroke: '#0E1B2E', strokeOpacity: 0.2 }} />
+                <Area dataKey="low" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} activeDot={false} />
+                <Area dataKey="range" stackId="band" stroke="none" fill="url(#band)" isAnimationActive={false} activeDot={false} />
+                <Line dataKey="mid" stroke="#0E1B2E" strokeWidth={2} dot={false} isAnimationActive={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -201,14 +174,9 @@ export function InvestingBasics() {
             <Eyebrow>In plain language</Eyebrow>
             <p className="mt-3 text-[1.04rem] leading-relaxed text-ink/85">{profile.takeaway}</p>
           </div>
-          <div
-            key={`fam-${index}`}
-            className="animate-fade-rise border border-brass/30 bg-parchment/70 p-6"
-          >
-            <Eyebrow>The Tan view</Eyebrow>
-            <p className="mt-3 text-[0.98rem] italic leading-relaxed text-navy/85">
-              {profile.family}
-            </p>
+          <div key={`fam-${index}`} className="animate-fade-rise border border-brass/30 bg-parchment/70 p-6">
+            <Eyebrow>The {client?.branding.familyName ?? 'family'} view</Eyebrow>
+            <p className="mt-3 text-[0.98rem] italic leading-relaxed text-navy/85">{familyNote}</p>
           </div>
         </div>
 
@@ -221,17 +189,8 @@ export function InvestingBasics() {
   )
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string
-  value: string
-  tone: 'brass' | 'warn' | 'navy'
-}) {
-  const color =
-    tone === 'brass' ? 'text-brass-deep' : tone === 'warn' ? 'text-[#9a4a2f]' : 'text-navy'
+function Stat({ label, value, tone }: { label: string; value: string; tone: 'brass' | 'warn' | 'navy' }) {
+  const color = tone === 'brass' ? 'text-brass-deep' : tone === 'warn' ? 'text-[#9a4a2f]' : 'text-navy'
   return (
     <div className="bg-bone px-5 py-6 text-center">
       <p className={`font-serif text-3xl tnum sm:text-4xl ${color}`}>{value}</p>
@@ -240,15 +199,28 @@ function Stat({
   )
 }
 
-function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
+function ChartTooltip({
+  active,
+  payload,
+  currency,
+}: {
+  active?: boolean
+  payload?: any[]
+  currency: string
+}) {
   if (!active || !payload || !payload.length) return null
   const row = payload[0].payload as { year: number; low: number; mid: number; high: number }
+  const m = (v: number) =>
+    `${currency}${(v / 1_000_000).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}M`
   return (
     <div className="border border-hairline bg-bone px-4 py-3 shadow-lift">
       <p className="label-caps text-ink/45">After {row.year} years</p>
-      <p className="mt-1 font-serif text-xl text-navy tnum">{fmtMoney(row.mid)}</p>
+      <p className="mt-1 font-serif text-xl text-navy tnum">{m(row.mid)}</p>
       <p className="mt-0.5 text-[0.72rem] text-ink/50 tnum">
-        Range {fmtMoney(row.low)} – {fmtMoney(row.high)}
+        Range {m(row.low)} – {m(row.high)}
       </p>
     </div>
   )

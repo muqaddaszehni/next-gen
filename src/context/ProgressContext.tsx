@@ -7,9 +7,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { modules } from '../data/family'
+import { modules } from '../data/app'
 
-const STORAGE_KEY = 'next-gen.progress.v1'
+const keyFor = (clientId: string) => `next-gen.progress.v1.${clientId}`
 
 interface ProgressState {
   completed: Record<string, boolean>
@@ -20,14 +20,14 @@ interface ProgressState {
   total: number
   ratio: number
   allComplete: boolean
-  nextModulePath: string | null
+  nextModuleId: string | null
 }
 
 const ProgressContext = createContext<ProgressState | null>(null)
 
-function load(): Record<string, boolean> {
+function load(clientId: string): Record<string, boolean> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(keyFor(clientId))
     if (!raw) return {}
     const parsed = JSON.parse(raw)
     return typeof parsed === 'object' && parsed ? parsed : {}
@@ -36,16 +36,28 @@ function load(): Record<string, boolean> {
   }
 }
 
-export function ProgressProvider({ children }: { children: ReactNode }) {
-  const [completed, setCompleted] = useState<Record<string, boolean>>(load)
+// Progress is namespaced per client, so two clients never collide.
+export function ProgressProvider({
+  clientId,
+  children,
+}: {
+  clientId: string
+  children: ReactNode
+}) {
+  const [completed, setCompleted] = useState<Record<string, boolean>>(() => load(clientId))
+
+  // Re-read when switching client.
+  useEffect(() => {
+    setCompleted(load(clientId))
+  }, [clientId])
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(completed))
+      localStorage.setItem(keyFor(clientId), JSON.stringify(completed))
     } catch {
-      /* storage unavailable — progress simply won't persist */
+      /* storage unavailable */
     }
-  }, [completed])
+  }, [clientId, completed])
 
   const markComplete = useCallback((id: string) => {
     setCompleted((prev) => (prev[id] ? prev : { ...prev, [id]: true }))
@@ -66,7 +78,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       total,
       ratio: total ? completedCount / total : 0,
       allComplete: completedCount === total,
-      nextModulePath: firstUnfinished ? firstUnfinished.path : null,
+      nextModuleId: firstUnfinished ? firstUnfinished.id : null,
     }
   }, [completed, markComplete, reset])
 

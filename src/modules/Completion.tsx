@@ -1,11 +1,17 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { heir, modules } from '../data/family'
+import { modules } from '../data/app'
 import { useProgress } from '../context/ProgressContext'
+import { clientPath, useActiveClient } from '../lib/nav'
 import { Action, Arrow, Eyebrow, GoldRule, Monogram } from '../components/primitives'
 
 export function Completion() {
   const navigate = useNavigate()
-  const { isComplete, completedCount, total, allComplete, reset, nextModulePath } = useProgress()
+  const client = useActiveClient()
+  const { isComplete, completedCount, total, allComplete, reset, nextModuleId } = useProgress()
+
+  if (!client) return null
+  const { heir, branding, completion } = client
+  const next = nextModuleId ? modules.find((m) => m.id === nextModuleId) : null
 
   return (
     <div className="mx-auto max-w-page px-5 pt-12 sm:px-8 sm:pt-20">
@@ -14,7 +20,7 @@ export function Completion() {
         <div className="flex justify-center">
           <div className="relative grid h-24 w-24 place-items-center rounded-full border border-brass/40">
             <span className="absolute inset-1.5 rounded-full border border-brass/25" aria-hidden />
-            <Monogram className="h-14 w-14 text-[2rem]" />
+            <Monogram letter={branding.monogram} className="h-14 w-14 text-[2rem]" />
           </div>
         </div>
 
@@ -29,19 +35,15 @@ export function Completion() {
               <span className="italic text-brass-deep">{heir.name}</span>.
             </>
           ) : (
-            <>You’re {completedCount} of {total} of the way there.</>
+            <>
+              You’re {completedCount} of {total} of the way there.
+            </>
           )}
         </h1>
         <GoldRule className="mx-auto mt-7" />
 
         {allComplete ? (
-          <p className="mt-7 text-[1.12rem] leading-relaxed text-ink/80">
-            You began with a trunk coming off a boat in 1958, and you’ve arrived at your own name in
-            the family story. You’ve seen how the wealth is held and protected, felt the trade-off at
-            the heart of investing, named the causes that move you, and thought through what you’d
-            actually do. None of this asks you to be anyone but yourself — only to carry what you’ve
-            inherited with the same care it was built with.
-          </p>
+          <p className="mt-7 text-[1.12rem] leading-relaxed text-ink/80">{completion.narrative}</p>
         ) : (
           <p className="mt-7 text-[1.08rem] leading-relaxed text-ink/75">
             Take your time — the modules will keep your place. Pick up wherever you left off whenever
@@ -49,8 +51,12 @@ export function Completion() {
           </p>
         )}
 
-        {!allComplete && nextModulePath && (
-          <Action onClick={() => navigate(nextModulePath)} variant="primary" className="mt-8">
+        {!allComplete && next && (
+          <Action
+            onClick={() => navigate(clientPath(client.id, next.path))}
+            variant="primary"
+            className="mt-8"
+          >
             Continue your journey <Arrow />
           </Action>
         )}
@@ -60,7 +66,9 @@ export function Completion() {
       <section className="mx-auto mt-16 max-w-reading animate-fade-rise animate-delay-2">
         <div className="flex items-end justify-between border-b border-hairline pb-3">
           <Eyebrow tone="navy">What you’ve covered</Eyebrow>
-          <Eyebrow tone="muted">{completedCount} / {total}</Eyebrow>
+          <Eyebrow tone="muted">
+            {completedCount} / {total}
+          </Eyebrow>
         </div>
         <ul>
           {modules.map((m) => {
@@ -68,7 +76,7 @@ export function Completion() {
             return (
               <li key={m.id}>
                 <Link
-                  to={m.path}
+                  to={clientPath(client.id, m.path)}
                   className="group flex items-center gap-4 border-b border-hairline py-5 transition-colors hover:bg-navy/[0.02]"
                 >
                   <span
@@ -98,20 +106,19 @@ export function Completion() {
           <div className="border border-brass/30 bg-navy p-8 text-center text-bone shadow-lift sm:p-12">
             <Eyebrow tone="brass">A note to carry with you</Eyebrow>
             <p className="mx-auto mt-5 max-w-xl font-serif text-[1.7rem] leading-snug text-bone sm:text-[2rem]">
-              “Wealth is not what you have. It’s what you choose to do with it, and who you become
-              while holding it.”
+              “{completion.quote}”
             </p>
-            <p className="label-caps mt-6 text-bone/50">The Tan family, to the next generation</p>
+            <p className="label-caps mt-6 text-bone/50">{completion.quoteAttribution}</p>
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Action onClick={() => navigate('/')} variant="secondary">
+            <Action onClick={() => navigate(clientPath(client.id))} variant="secondary">
               <Arrow dir="left" /> Back to all modules
             </Action>
             <Action
               onClick={() => {
                 reset()
-                navigate('/')
+                navigate(clientPath(client.id))
               }}
               variant="ghost"
             >

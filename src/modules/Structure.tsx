@@ -8,9 +8,10 @@ import {
   type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { structureEdges, structureNodes, type StructureNodeData } from '../data/family'
+import type { StructureNodeData } from '../data/types'
 import { ModuleShell } from '../components/ModuleShell'
 import { Eyebrow, GoldRule } from '../components/primitives'
+import { useActiveClient } from '../lib/nav'
 
 // ── Layout (canvas coordinates; React Flow fitView frames it) ───────────────
 const layout: Record<string, { x: number; y: number; w: number; accent: NodeAccent }> = {
@@ -28,8 +29,13 @@ type NodeAccent = 'navy' | 'brass' | 'plain' | 'soft'
 const REQUIRED_KEYS = ['trust', 'foundation']
 
 export function Structure() {
+  const client = useActiveClient()
   const [selected, setSelected] = useState<string | null>(null)
   const [viewed, setViewed] = useState<Set<string>>(() => new Set())
+
+  const structureNodes = client?.structureNodes ?? {}
+  const structureEdges = client?.structureEdges ?? []
+  const familyName = client?.branding.familyName ?? ''
 
   const reveal = (key: string) => {
     setSelected(key)
@@ -109,7 +115,7 @@ export function Structure() {
         {/* ── The diagram ─────────────────────────────────────────── */}
         <div className="relative h-[440px] overflow-hidden border border-hairline bg-parchment/50 shadow-card sm:h-[520px]">
           <div className="pointer-events-none absolute left-4 top-4 z-10">
-            <Eyebrow tone="muted">The Tan family structure</Eyebrow>
+            <Eyebrow tone="muted">The {familyName} family structure</Eyebrow>
           </div>
           <ReactFlow
             nodes={nodes}
@@ -149,7 +155,7 @@ export function Structure() {
                 <p className="label-caps mt-6 text-ink/40">What is this?</p>
                 <p className="mt-2 text-[1.02rem] leading-relaxed text-ink/85">{detail.what}</p>
 
-                <p className="label-caps mt-6 text-ink/40">For the Tans</p>
+                <p className="label-caps mt-6 text-ink/40">For the {familyName}s</p>
                 <p className="mt-2 text-[1.02rem] leading-relaxed text-ink/75">{detail.detail}</p>
               </div>
             ) : (

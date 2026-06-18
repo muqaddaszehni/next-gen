@@ -1,10 +1,9 @@
 import { useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { modules } from '../data/family'
+import { modules } from '../data/app'
 import { useProgress } from '../context/ProgressContext'
+import { clientPath, useActiveClient } from '../lib/nav'
 import { Action, Arrow, Eyebrow, GoldRule } from './primitives'
-
-const numberWords = ['one', 'two', 'three', 'four', 'five']
 
 export function ModuleShell({
   moduleId,
@@ -20,6 +19,7 @@ export function ModuleShell({
   gateHint?: string
 }) {
   const navigate = useNavigate()
+  const client = useActiveClient()
   const { markComplete, isComplete } = useProgress()
 
   const index = modules.findIndex((m) => m.id === moduleId)
@@ -27,6 +27,7 @@ export function ModuleShell({
   const prev = index > 0 ? modules[index - 1] : null
   const next = index < modules.length - 1 ? modules[index + 1] : null
   const done = isComplete(moduleId)
+  const cid = client?.id ?? ''
 
   // Scroll to top when the module changes.
   useEffect(() => {
@@ -40,7 +41,7 @@ export function ModuleShell({
 
   const handleContinue = () => {
     markComplete(moduleId)
-    navigate(next ? next.path : '/complete')
+    navigate(next ? clientPath(cid, next.path) : clientPath(cid, 'complete'))
   }
 
   return (
@@ -50,7 +51,7 @@ export function ModuleShell({
         <div className="flex items-center gap-3">
           <Eyebrow>Module {meta.number}</Eyebrow>
           <span className="h-px w-6 bg-hairline" />
-          <Eyebrow tone="muted">of {numberWords.length}</Eyebrow>
+          <Eyebrow tone="muted">of {modules.length}</Eyebrow>
           {done && (
             <span className="label-caps ml-1 inline-flex items-center gap-1 text-brass-deep">
               <Check /> Complete
@@ -72,7 +73,7 @@ export function ModuleShell({
         <div>
           {prev ? (
             <button
-              onClick={() => navigate(prev.path)}
+              onClick={() => navigate(clientPath(cid, prev.path))}
               className="group inline-flex items-center gap-2 text-left"
             >
               <span className="text-navy/50 transition-colors group-hover:text-navy">
@@ -85,7 +86,7 @@ export function ModuleShell({
             </button>
           ) : (
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate(clientPath(cid))}
               className="group inline-flex items-center gap-2"
             >
               <span className="text-navy/50 transition-colors group-hover:text-navy">

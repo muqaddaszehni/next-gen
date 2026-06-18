@@ -2,15 +2,15 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import App from './App'
-import { ProgressProvider } from './context/ProgressContext'
+import { ClientsProvider } from './context/ClientsContext'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <HashRouter>
-      <ProgressProvider>
+      <ClientsProvider>
         <App />
-      </ProgressProvider>
+      </ClientsProvider>
     </HashRouter>
   </React.StrictMode>,
 )

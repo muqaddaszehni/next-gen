@@ -1,15 +1,19 @@
 import { useState } from 'react'
-import { causes, type Cause } from '../data/family'
+import { causeById, causes } from '../data/app'
 import { ModuleShell } from '../components/ModuleShell'
 import { Eyebrow, GoldRule } from '../components/primitives'
+import { useActiveClient } from '../lib/nav'
 
 const MAX_PICKS = 3
-const CURRENT_PILLARS = new Set(['education', 'ocean'])
-const byId = Object.fromEntries(causes.map((c) => [c.id, c])) as Record<string, Cause>
 
 export function GivingBack() {
+  const client = useActiveClient()
   // Ordered list of chosen cause ids — order is the ranking.
   const [picks, setPicks] = useState<string[]>([])
+
+  const causeReflections = client?.causeReflections ?? {}
+  const currentPillars = new Set(client?.branding.currentPillars ?? [])
+  const familyName = client?.branding.familyName ?? 'family'
 
   const toggle = (id: string) => {
     setPicks((prev) => {
@@ -30,6 +34,7 @@ export function GivingBack() {
   }
 
   const ready = picks.length === MAX_PICKS
+  const pillarNames = [...currentPillars].map((id) => causeById[id]?.name?.toLowerCase() ?? id)
 
   return (
     <ModuleShell
@@ -79,9 +84,7 @@ export function GivingBack() {
               >
                 {isPicked ? rank + 1 : ''}
               </span>
-              <h3 className="max-w-[85%] font-serif text-[1.18rem] leading-tight text-navy">
-                {c.name}
-              </h3>
+              <h3 className="max-w-[85%] font-serif text-[1.18rem] leading-tight text-navy">{c.name}</h3>
               <p className="mt-2 text-[0.8rem] leading-snug text-ink/55">{c.blurb}</p>
             </button>
           )
@@ -102,26 +105,19 @@ export function GivingBack() {
           ) : (
             <ol className="mt-5 space-y-3">
               {picks.map((id, i) => (
-                <li
-                  key={id}
-                  className="flex items-center gap-4 border border-hairline bg-bone px-4 py-3.5"
-                >
+                <li key={id} className="flex items-center gap-4 border border-hairline bg-bone px-4 py-3.5">
                   <span className="font-serif text-3xl text-brass-deep tnum">{i + 1}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-serif text-lg leading-tight text-navy">{byId[id].name}</p>
-                    <p className="truncate text-[0.78rem] text-ink/50">{byId[id].blurb}</p>
+                    <p className="font-serif text-lg leading-tight text-navy">{causeById[id].name}</p>
+                    <p className="truncate text-[0.78rem] text-ink/50">{causeById[id].blurb}</p>
                   </div>
                   <div className="flex flex-col">
                     <ReorderButton dir="up" disabled={i === 0} onClick={() => move(i, -1)} />
-                    <ReorderButton
-                      dir="down"
-                      disabled={i === picks.length - 1}
-                      onClick={() => move(i, 1)}
-                    />
+                    <ReorderButton dir="down" disabled={i === picks.length - 1} onClick={() => move(i, 1)} />
                   </div>
                   <button
                     onClick={() => toggle(id)}
-                    aria-label={`Remove ${byId[id].name}`}
+                    aria-label={`Remove ${causeById[id].name}`}
                     className="ml-1 text-ink/30 transition-colors hover:text-[#9a4a2f]"
                   >
                     <Cross />
@@ -142,14 +138,14 @@ export function GivingBack() {
           ) : (
             <div className="mt-5 animate-fade-rise" key={picks.join('-')}>
               <p className="font-serif text-2xl leading-snug text-bone">
-                {byId[picks[0]].name} sits at the heart of it.
+                {causeById[picks[0]].name} sits at the heart of it.
               </p>
               <p className="mt-3 text-[0.98rem] leading-relaxed text-bone/75">
-                {byId[picks[0]].reflection}
+                {causeReflections[picks[0]]}
               </p>
               <div className="my-6 h-px w-full bg-bone/15" />
               <p className="text-[0.98rem] leading-relaxed text-bone/85">
-                {buildSuggestion(picks)}
+                {buildSuggestion(picks, currentPillars)}
               </p>
             </div>
           )}
@@ -157,27 +153,24 @@ export function GivingBack() {
       </div>
 
       <p className="mt-6 text-[0.72rem] leading-relaxed text-ink/40">
-        The Tan Family Foundation today focuses on education for first-generation students and on
-        marine conservation. This exercise is a reflection, not a decision — a way to notice where
-        your own values point.
+        The {familyName} Family Foundation today focuses on {pillarNames[0]} and {pillarNames[1]}. This
+        exercise is a reflection, not a decision — a way to notice where your own values point.
       </p>
     </ModuleShell>
   )
 }
 
 // Synthesises a one-paragraph suggestion from the ranked picks.
-function buildSuggestion(picks: string[]): string {
-  const names = picks.map((id) => byId[id].name)
-  const continued = picks.filter((id) => CURRENT_PILLARS.has(id)).map((id) => byId[id].name)
-  const fresh = picks.filter((id) => !CURRENT_PILLARS.has(id)).map((id) => byId[id].name)
+function buildSuggestion(picks: string[], currentPillars: Set<string>): string {
+  const names = picks.map((id) => causeById[id].name)
+  const continued = picks.filter((id) => currentPillars.has(id)).map((id) => causeById[id].name)
+  const fresh = picks.filter((id) => !currentPillars.has(id)).map((id) => causeById[id].name)
 
   const list = (arr: string[]) =>
-    arr.length <= 1
-      ? arr[0] ?? ''
-      : `${arr.slice(0, -1).join(', ')} and ${arr[arr.length - 1]}`
+    arr.length <= 1 ? (arr[0] ?? '') : `${arr.slice(0, -1).join(', ')} and ${arr[arr.length - 1]}`
 
   if (fresh.length === 0) {
-    return `Every cause you chose — ${list(names)} — is already part of the Foundation’s work. Your instinct is one of continuity: rather than reinvent, you’d deepen what your mother began, perhaps committing more, for longer, with greater focus.`
+    return `Every cause you chose — ${list(names)} — is already part of the Foundation’s work. Your instinct is one of continuity: rather than reinvent, you’d deepen what came before, perhaps committing more, for longer, with greater focus.`
   }
   if (continued.length === 0) {
     return `You’d steer the Foundation somewhere genuinely new. None of your causes — ${list(
@@ -193,15 +186,7 @@ function buildSuggestion(picks: string[]): string {
   )}. A balanced next chapter might protect what already works while opening one fresh initiative around ${fresh[0]} — continuity and renewal, side by side.`
 }
 
-function ReorderButton({
-  dir,
-  disabled,
-  onClick,
-}: {
-  dir: 'up' | 'down'
-  disabled: boolean
-  onClick: () => void
-}) {
+function ReorderButton({ dir, disabled, onClick }: { dir: 'up' | 'down'; disabled: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}

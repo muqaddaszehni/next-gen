@@ -1,14 +1,17 @@
 import { useState } from 'react'
-import { timeline } from '../data/family'
 import { ModuleShell } from '../components/ModuleShell'
 import { Eyebrow } from '../components/primitives'
 import { StoryIcon } from '../components/StoryIcons'
+import { useActiveClient } from '../lib/nav'
 
 const REQUIRED = 4
 
 export function FamilyStory() {
+  const client = useActiveClient()
   // First chapter open by default; track which chapters have been explored.
   const [open, setOpen] = useState<Set<number>>(() => new Set([0]))
+
+  const timeline = client?.timeline ?? []
 
   const toggle = (i: number) => {
     setOpen((prev) => {

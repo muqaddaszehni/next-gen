@@ -1,14 +1,21 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { heir, modules } from '../data/family'
+import { modules } from '../data/app'
 import { useProgress } from '../context/ProgressContext'
+import { clientPath, useActiveClient } from '../lib/nav'
 import { Action, Arrow, Eyebrow, GoldRule, Monogram } from '../components/primitives'
 import { ProgressMeter } from '../components/ProgressMeter'
 
 export function Home() {
   const navigate = useNavigate()
-  const { isComplete, completedCount, total, allComplete, nextModulePath } = useProgress()
+  const client = useActiveClient()
+  const { isComplete, completedCount, total, allComplete, nextModuleId } = useProgress()
+
+  if (!client) return null
+  const { heir, branding, family, structureNodes } = client
   const started = completedCount > 0
-  const ctaPath = nextModulePath ?? '/complete'
+
+  const next = nextModuleId ? modules.find((m) => m.id === nextModuleId) : null
+  const ctaPath = next ? clientPath(client.id, next.path) : clientPath(client.id, 'complete')
 
   return (
     <div className="mx-auto max-w-page px-5 sm:px-8">
@@ -22,13 +29,15 @@ export function Home() {
             <span className="italic text-brass-deep">{heir.name}</span>.
           </h1>
           <GoldRule className="mt-8" />
-          <p className="mt-8 max-w-reading text-[1.12rem] leading-relaxed text-ink/80">
-            {heir.welcome}
-          </p>
+          <p className="mt-8 max-w-reading text-[1.12rem] leading-relaxed text-ink/80">{heir.welcome}</p>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Action onClick={() => navigate(ctaPath)} variant="primary">
-              {allComplete ? 'Revisit your completion' : started ? 'Continue your journey' : 'Begin your journey'}
+              {allComplete
+                ? 'Revisit your completion'
+                : started
+                  ? 'Continue your journey'
+                  : 'Begin your journey'}
               <Arrow />
             </Action>
             {started && !allComplete && (
@@ -39,18 +48,19 @@ export function Home() {
           </div>
         </div>
 
-        {/* A quiet "frontispiece" card — the family's facts at a glance. */}
         <aside className="animate-fade-rise animate-delay-2">
           <div className="relative border border-hairline bg-parchment/80 p-8 shadow-card sm:p-10">
             <div className="pointer-events-none absolute inset-3 border border-brass/20" aria-hidden />
             <div className="relative flex flex-col items-center text-center">
-              <Monogram className="h-16 w-16 text-[2.4rem]" />
-              <p className="mt-5 font-serif text-2xl text-navy">The Tan Family</p>
-              <p className="label-caps mt-2 text-ink/40">Hong Kong · est. 1958</p>
+              <Monogram letter={branding.monogram} className="h-16 w-16 text-[2.4rem]" />
+              <p className="mt-5 font-serif text-2xl text-navy">The {branding.familyName} Family</p>
+              <p className="label-caps mt-2 text-ink/40">
+                {branding.city} · est. {branding.established}
+              </p>
               <div className="mt-7 w-full space-y-0 text-left">
-                <FactRow label="Founded by" value="Tan Lim-Sheng" />
-                <FactRow label="Generations" value="Four" />
-                <FactRow label="Held within" value="The Tan Family Trust" />
+                <FactRow label="Founded by" value={family.founder} />
+                <FactRow label="Family seat" value={branding.city} />
+                <FactRow label="Held within" value={structureNodes.trust?.title ?? 'The family trust'} />
                 <FactRow label="Your guide" value="Five short modules" last />
               </div>
             </div>
@@ -63,7 +73,7 @@ export function Home() {
         <ProgressMeter className="max-w-reading" />
       </section>
 
-      {/* ── Module index (a printed contents page) ────────────────── */}
+      {/* ── Module index ──────────────────────────────────────────── */}
       <section className="mt-12">
         <div className="flex items-end justify-between border-b border-hairline pb-4">
           <Eyebrow tone="navy">The modules</Eyebrow>
@@ -76,7 +86,7 @@ export function Home() {
             return (
               <li key={m.id}>
                 <Link
-                  to={m.path}
+                  to={clientPath(client.id, m.path)}
                   className="group grid grid-cols-[auto_1fr_auto] items-center gap-5 border-b border-hairline py-7 transition-colors duration-300 hover:bg-navy/[0.02] sm:gap-8 sm:py-8"
                   style={{ animationDelay: `${0.1 + i * 0.06}s` }}
                 >
@@ -117,7 +127,11 @@ export function Home() {
             <p className="mx-auto mt-4 max-w-xl font-serif text-2xl leading-snug text-navy">
               You’ve completed every module. Your reflection is waiting.
             </p>
-            <Action onClick={() => navigate('/complete')} variant="secondary" className="mt-6">
+            <Action
+              onClick={() => navigate(clientPath(client.id, 'complete'))}
+              variant="secondary"
+              className="mt-6"
+            >
               View your completion
               <Arrow />
             </Action>
@@ -128,15 +142,7 @@ export function Home() {
   )
 }
 
-function FactRow({
-  label,
-  value,
-  last = false,
-}: {
-  label: string
-  value: string
-  last?: boolean
-}) {
+function FactRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
   return (
     <div
       className={`flex items-baseline justify-between gap-4 py-2.5 ${

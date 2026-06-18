@@ -1,5 +1,5 @@
 import { useProgress } from '../context/ProgressContext'
-import { modules } from '../data/family'
+import { modules } from '../data/app'
 
 // A refined segmented progress meter — one hairline segment per module,
 // filling brass as modules are completed.
